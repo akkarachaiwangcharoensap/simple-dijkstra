@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+</head>
+<body>
+	<script type="text/javascript">
+		/**
+		 * https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm
+		 */
+		class Dijkstra 
+		{
+			constructor (G) 
+			{
+				this.Q = [];
+				this.G = G;
+			}
+
+			/**
+			 * Search the paths to the from starting to the target node
+			 *
+			 * @param startNode
+			 * @param targetNode
+			 *
+			 * @return void
+			 */
+			search (startNode, targetNode) 
+			{
+				for (var i = 0; i < G.getNodes().length; i++)
+				{
+					var node = G.getNodes()[i];
+
+					node.distance = Infinity;
+					node.previous = undefined;
+
+					this.Q.push(node);
+				}
+
+				startNode.distance = 0;
+
+				var S = [];
+					
+				while (this.Q.length > 0)
+				{
+					// Find the least distance between the source node and the next point
+					var uMin = this.Q[0];
+					for (var i = 0; i < this.Q.length; i++)
+					{
+						var uNext = this.Q[i];
+						if (uNext.distance < uMin.distance) {
+							uMin = uNext;
+							break;
+						}
+					}
+
+					var u = uMin;
+
+					// remove `u` from `Q`
+					for (var i = 0; i < this.Q.length; i++)
+					{
+						var t = this.Q[i];
+						if (t.id == u.id) {
+							this.Q.splice(i, 1);
+							break;
+						}
+					}
+					
+					// if target is found...
+					var tempTarget = targetNode;
+					if (tempTarget.previous || tempTarget.id == startNode.id)
+					{
+						var S = [];
+
+						while (tempTarget)
+						{
+							S.push(tempTarget);
+							tempTarget = tempTarget.previous;
+						}
+					}
+
+					// Find next point
+					for (var i = 0; i < u.getNeighbours().length; i++) {
+						var v = u.getNeighbours()[i];
+						var alt = u.distance + this.length(u, v);
+
+						if (alt < v.distance) {
+							v.distance = alt;
+							v.previous = u;
+						}
+					}
+				}
+
+				return S;
+			}
+
+			length (u, v) {
+				return Math.sqrt(Math.pow(v.x - u.x, 2) + Math.pow(v.y - u.y, 2));
+			}
+
+			shortest ()
+			{
+				var distances = [];
+				for (var i = 0; i < this.Q.length; i++)
+				{
+					var node = this.Q[i];
+					distances.push(node.shortestNeighbour().distance);
+				}
+
+				var shortest = Math.min(...distances);
+				var index = distances.indexOf(shortest);
+				
+				return this.Q[index];
+			}
+		}
+
+		class Node 
+		{
+			constructor () 
+			{
+				this.x = undefined;
+				this.y = undefined;
+				this.id = undefined;
+				this.distance = Infinity;
+				this.previous = undefined;
+				this.neighbours = [];
+			}
+
+			getNeighbours ()
+			{
+				return this.neighbours;
+			}
+
+			// https://stackoverflow.com/questions/8934877/obtain-smallest-value-from-array-in-javascript
+			shortestNeighbour ()
+			{
+				var distances = [];
+
+				for (var i = 0; i < this.neighbours.length; i++)
+				{
+					var neighbour = this.neighbours[i];
+
+					if (!neighbour) {
+						continue;
+					}
+
+					distances.push(neighbour.distance);
+				}
+
+				var shortest = Math.min(...distances);
+				var index = distances.indexOf(shortest);
+				
+				return this.neighbours[index];
+			}
+		}
+
+		class Graph 
+		{
+			constructor () 
+			{
+				this.nodes = [];
+
+				var size = 5; // 5x5
+				var id = 0;
+
+				for (var x = 0; x < size; x++) {
+					for (var y = 0; y < size; y++) {
+						
+						var node = new Node();
+						node.id = id;
+						node.x = x;
+						node.y = y;
+
+						this.nodes.push(node);
+
+						id = id + 1;
+					}
+				}
+
+				// setting neighbours
+				for (var i = 0; i < this.nodes.length; i++)
+				{
+					var current = this.nodes[i];
+
+					var topLeft = this.nodes.find((node) => { return node.x + 1 == current.x && node.y + 1 == current.y });
+					if (topLeft) {
+						topLeft.distance = Math.sqrt(Math.pow(topLeft.x - current.x, 2) + Math.pow(topLeft.y - current.y, 2));
+						current.neighbours.push(topLeft);
+					}
+
+					var top = this.nodes.find((node) => { return node.x == current.x && node.y + 1 == current.y });
+					if (top) {
+						top.distance = Math.sqrt(Math.pow(top.x - current.x, 2) + Math.pow(top.y - current.y, 2));
+						current.neighbours.push(top);
+					}
+
+					var topRight = this.nodes.find((node) => { return node.x - 1 == current.x && node.y + 1 == current.y });
+					if (topRight) {
+						topRight.distance = Math.sqrt(Math.pow(topRight.x - current.x, 2) + Math.pow(topRight.y - current.y, 2));
+						current.neighbours.push(topRight);
+					}
+
+					var left = this.nodes.find((node) => { return node.x + 1 == current.x && node.y == current.y });
+					if (left) {
+						left.distance = Math.sqrt(Math.pow(left.x - current.x, 2) + Math.pow(left.y - current.y, 2));
+						current.neighbours.push(left);
+					}
+
+					var right = this.nodes.find((node) => { return node.x - 1 == current.x && node.y == current.y });
+					if (right) {
+						right.distance = Math.sqrt(Math.pow(right.x - current.x, 2) + Math.pow(right.y - current.y, 2));
+						current.neighbours.push(right);
+					}
+
+					var bottomLeft = this.nodes.find((node) => { return node.x + 1 == current.x && node.y - 1 == current.y });
+					if (bottomLeft) {
+						bottomLeft.distance = Math.sqrt(Math.pow(bottomLeft.x - current.x, 2) + Math.pow(bottomLeft.y - current.y, 2));
+						current.neighbours.push(bottomLeft);
+					}
+
+					var bottom = this.nodes.find((node) => { return node.x == current.x && node.y - 1 == current.y });
+					if (bottom) {
+						bottom.distance = Math.sqrt(Math.pow(bottom.x - current.x, 2) + Math.pow(bottom.y - current.y, 2));
+						current.neighbours.push(bottom);
+					}
+
+					var bottomRight = this.nodes.find((node) => { return node.x - 1 == current.x && node.y - 1 == current.y });
+
+					if (bottomRight) {
+						bottomRight.distance = Math.sqrt(Math.pow(bottomRight.x - current.x, 2) + Math.pow(bottomRight.y - current.y, 2));
+						current.neighbours.push(bottomRight);
+					}
+				}
+
+
+			}
+
+			getNodes () 
+			{
+				return this.nodes;
+			}
+		}
+
+		var G = new Graph();
+		var node0 = G.getNodes()[0];
+
+		var D = new Dijkstra(G);
+
+		var node8 = G.getNodes()[7];
+		var node24 = G.getNodes()[24];
+
+		console.log(D.search(node0, node24));
+	</script>
+
+</body>
+</html>
+
