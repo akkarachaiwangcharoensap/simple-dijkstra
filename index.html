@@ -10,109 +10,133 @@
 		 */
 		class Dijkstra 
 		{
-			constructor (G) 
+			constructor (graph) 
 			{
-				this.Q = [];
-				this.G = G;
+				this.paths = [];
+				this.queue = [];
+
+				this.graph = graph;
 			}
 
 			/**
 			 * Search the paths to the from starting to the target node
 			 *
-			 * @param startNode
-			 * @param targetNode
+			 * @param start
+			 * @param goal
 			 *
 			 * @return void
 			 */
-			search (startNode, targetNode) 
+			search (start, goal) 
 			{
-				for (var i = 0; i < G.getNodes().length; i++)
+				// Insert each nodes onto the queue array
+				for (var i = 0; i < this.graph.getNodes().length; i++)
 				{
-					var node = G.getNodes()[i];
+					var node = this.graph.getNodes()[i];
 
 					node.distance = Infinity;
 					node.previous = undefined;
 
-					this.Q.push(node);
+					this.queue.push(node);
 				}
 
-				startNode.distance = 0;
+				// Set the start as the least distance
+				start.distance = 0;
 
-				var S = [];
+				var paths = [];
 					
-				while (this.Q.length > 0)
+				while (this.queue.length > 0)
 				{
-					// Find the least distance between the source node and the next point
-					var uMin = this.Q[0];
-					for (var i = 0; i < this.Q.length; i++)
+					// Find the least distance node
+					var least = this.queue[0];
+					for (var i = 0; i < this.queue.length; i++)
 					{
-						var uNext = this.Q[i];
-						if (uNext.distance < uMin.distance) {
-							uMin = uNext;
+						var next = this.queue[i];
+						if (next.distance < least.distance) {
+							least = next;
 							break;
 						}
 					}
 
-					var u = uMin;
+					var current = least;
 
-					// remove `u` from `Q`
-					for (var i = 0; i < this.Q.length; i++)
+					// remove `current` from `queue` array
+					for (var i = 0; i < this.queue.length; i++)
 					{
-						var t = this.Q[i];
-						if (t.id == u.id) {
-							this.Q.splice(i, 1);
+						var next = this.queue[i];
+						if (current.id == next.id) {
+							this.queue.splice(i, 1);
 							break;
 						}
 					}
 					
-					// if target is found...
-					var tempTarget = targetNode;
-					if (tempTarget.previous || tempTarget.id == startNode.id)
+					// if the goal is found, retrieve the paths
+					if (current.id == goal.id)
 					{
-						var S = [];
-
-						while (tempTarget)
-						{
-							S.push(tempTarget);
-							tempTarget = tempTarget.previous;
-						}
+						return this.paths = this.reconstruct_path(current);
 					}
 
 					// Find next point
-					for (var i = 0; i < u.getNeighbours().length; i++) {
-						var v = u.getNeighbours()[i];
-						var alt = u.distance + this.length(u, v);
+					for (var i = 0; i < current.getNeighbours().length; i++) {
+						var neighbour = current.getNeighbours()[i];
+							
+						// If the neighbour does not exist, skip it.
+						if (!neighbour) {
+							continue;
+						}
 
-						if (alt < v.distance) {
-							v.distance = alt;
-							v.previous = u;
+						var distance = current.distance + this.movement_cost(current, neighbour);
+
+						if (neighbour.distance > distance) {
+							neighbour.distance = distance;
+							neighbour.cameFrom = current;
 						}
 					}
 				}
 
-				return S;
+				return this.paths = [];
 			}
 
-			length (u, v) {
-				return Math.sqrt(Math.pow(v.x - u.x, 2) + Math.pow(v.y - u.y, 2));
-			}
-
-			shortest ()
+			/**
+			 * The cost of moving onto the next node, this function
+			 * can be used to adjust or prioritize the node you want to move onto
+			 * 
+			 * @param Node current
+			 * @param Node next
+			 *
+			 * @return float
+			 */
+			movement_cost (current, next) 
 			{
-				var distances = [];
-				for (var i = 0; i < this.Q.length; i++)
-				{
-					var node = this.Q[i];
-					distances.push(node.shortestNeighbour().distance);
+				return Math.sqrt(
+					Math.pow(next.x - current.x, 2) + 
+					Math.pow(next.y - current.y, 2)
+				);
+			}
+
+			/**
+			 * Reconstruct paths
+			 *
+			 * @param Node current
+			 * @return [] paths
+			 */
+			reconstruct_path (current)
+			{
+				var paths = [];
+
+				while (current.cameFrom) {
+					current = current.cameFrom;
+					paths.unshift(current);
 				}
 
-				var shortest = Math.min(...distances);
-				var index = distances.indexOf(shortest);
-				
-				return this.Q[index];
+				return paths;
 			}
 		}
 
+		/**
+		 * =============================================
+		 * | A point on the navigation system or graph |
+		 * =============================================
+		 */
 		class Node 
 		{
 			constructor () 
@@ -121,38 +145,25 @@
 				this.y = undefined;
 				this.id = undefined;
 				this.distance = Infinity;
-				this.previous = undefined;
+				this.cameFrom = undefined;
 				this.neighbours = [];
 			}
 
+			/**
+			 * Get neighbour nodes
+			 * @return [] this.neighbours
+			 */
 			getNeighbours ()
 			{
 				return this.neighbours;
 			}
-
-			// https://stackoverflow.com/questions/8934877/obtain-smallest-value-from-array-in-javascript
-			shortestNeighbour ()
-			{
-				var distances = [];
-
-				for (var i = 0; i < this.neighbours.length; i++)
-				{
-					var neighbour = this.neighbours[i];
-
-					if (!neighbour) {
-						continue;
-					}
-
-					distances.push(neighbour.distance);
-				}
-
-				var shortest = Math.min(...distances);
-				var index = distances.indexOf(shortest);
-				
-				return this.neighbours[index];
-			}
 		}
 
+		/**
+		 * =============================================
+		 * | The navigation system or graph            |
+		 * =============================================
+		 */
 		class Graph 
 		{
 			constructor () 
@@ -182,73 +193,43 @@
 					var current = this.nodes[i];
 
 					var topLeft = this.nodes.find((node) => { return node.x + 1 == current.x && node.y + 1 == current.y });
-					if (topLeft) {
-						topLeft.distance = Math.sqrt(Math.pow(topLeft.x - current.x, 2) + Math.pow(topLeft.y - current.y, 2));
-						current.neighbours.push(topLeft);
-					}
 
 					var top = this.nodes.find((node) => { return node.x == current.x && node.y + 1 == current.y });
-					if (top) {
-						top.distance = Math.sqrt(Math.pow(top.x - current.x, 2) + Math.pow(top.y - current.y, 2));
-						current.neighbours.push(top);
-					}
-
+					
 					var topRight = this.nodes.find((node) => { return node.x - 1 == current.x && node.y + 1 == current.y });
-					if (topRight) {
-						topRight.distance = Math.sqrt(Math.pow(topRight.x - current.x, 2) + Math.pow(topRight.y - current.y, 2));
-						current.neighbours.push(topRight);
-					}
-
+					
 					var left = this.nodes.find((node) => { return node.x + 1 == current.x && node.y == current.y });
-					if (left) {
-						left.distance = Math.sqrt(Math.pow(left.x - current.x, 2) + Math.pow(left.y - current.y, 2));
-						current.neighbours.push(left);
-					}
-
+					
 					var right = this.nodes.find((node) => { return node.x - 1 == current.x && node.y == current.y });
-					if (right) {
-						right.distance = Math.sqrt(Math.pow(right.x - current.x, 2) + Math.pow(right.y - current.y, 2));
-						current.neighbours.push(right);
-					}
-
+					
 					var bottomLeft = this.nodes.find((node) => { return node.x + 1 == current.x && node.y - 1 == current.y });
-					if (bottomLeft) {
-						bottomLeft.distance = Math.sqrt(Math.pow(bottomLeft.x - current.x, 2) + Math.pow(bottomLeft.y - current.y, 2));
-						current.neighbours.push(bottomLeft);
-					}
-
+					
 					var bottom = this.nodes.find((node) => { return node.x == current.x && node.y - 1 == current.y });
-					if (bottom) {
-						bottom.distance = Math.sqrt(Math.pow(bottom.x - current.x, 2) + Math.pow(bottom.y - current.y, 2));
-						current.neighbours.push(bottom);
-					}
 
 					var bottomRight = this.nodes.find((node) => { return node.x - 1 == current.x && node.y - 1 == current.y });
 
-					if (bottomRight) {
-						bottomRight.distance = Math.sqrt(Math.pow(bottomRight.x - current.x, 2) + Math.pow(bottomRight.y - current.y, 2));
-						current.neighbours.push(bottomRight);
-					}
+					var neighbours = [topLeft, top, topRight, left, right, bottomLeft, bottom, bottomRight];
+
+					current.neighbours = neighbours;
 				}
-
-
 			}
 
+			/**
+			 * Get navigation nodes
+			 * @return [] this.nodes
+			 */
 			getNodes () 
 			{
 				return this.nodes;
 			}
 		}
 
-		var G = new Graph();
-		var node0 = G.getNodes()[0];
+		var graph = new Graph();
+		var start = graph.getNodes()[0];
+		var end = graph.getNodes()[24];
 
-		var D = new Dijkstra(G);
-
-		var node8 = G.getNodes()[7];
-		var node24 = G.getNodes()[24];
-
-		console.log(D.search(node0, node24));
+		var pathfinder = new Dijkstra(graph);
+		console.log(pathfinder.search(start, end));
 	</script>
 
 </body>
